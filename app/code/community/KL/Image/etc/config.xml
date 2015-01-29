@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+    <modules>
+        <KL_Image>
+            <version>0.1.0</version>
+        </KL_Image>
+    </modules>
+    <frontend>
+        <routers>
+            <kl_image>
+                <use>standard</use>
+                <args>
+                    <module>KL_Image</module>
+                    <frontName>image</frontName>
+                </args>
+            </kl_image>
+        </routers>
+    </frontend>
+</config>
