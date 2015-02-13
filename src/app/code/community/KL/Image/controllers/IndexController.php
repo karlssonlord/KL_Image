@@ -1,101 +1,70 @@
 <?php
+
 /**
  * Image Controller
  *
+ * @package KL_Image
  * @author Erik Eng <erik@karlssonlord.com>
- *
+ * @author David Wickström <david@karlssonlord.com>
  */
 class KL_Image_IndexController extends Mage_Core_Controller_Front_Action
 {
+    /**
+     *  The request valid path pattern that I, the controller itself, care about
+     */
     const REQUEST_PATH_PATTERN = '/image\/index\/index\/(.*)/';
 
+    protected $image;
+
+    public function __construct(KL_Image_Model_Image $image)
+    {
+        $this->image = $image ? : new KL_Image_Model_Image;
+    }
+
+
+    /**
+     * @return void|Zend_Controller_Response_Abstract
+     */
     public function indexAction()
     {
-        $_req = $this->getRequest();
-        $_res = $this->getResponse();
-
-        if(preg_match(self::REQUEST_PATH_PATTERN, $_req->getPathInfo(), $match)) {
-
-            // No tricks, ok?
-            $_imagePath = str_replace('../', '', $match[1]);
-            $_imageWidth = $this->_getImageWidth();
-
-            $_mediaBaseDir = Mage::getBaseDir(Mage_Core_Model_Store::URL_TYPE_MEDIA);
-            $_baseUrl  = Mage::getBaseUrl(Mage_Core_Model_Store::URL_TYPE_MEDIA);
-            $_basePath = $_mediaBaseDir . DS . $_imagePath;
-            $_newPath  = $_mediaBaseDir . DS . 'r' . DS . $_imageWidth . DS . $_imagePath;
-
-            // TODO: Compress $_newPath widh some hash method, keeping the file name?
-            //     Will that create too flat file hierarchy?
-
-            $_origUrl  = $_baseUrl . $_imagePath;
-            $_newUrl   = $_baseUrl . str_replace($_mediaBaseDir . '/', '', $_newPath);
-
-            // Image available in requested size
-            if(file_exists($_basePath) && file_exists($_newPath)) {
-                $_imageUrl = $_newUrl;
-            }
-
-            // Scale and save new size
-            if(!isset($_imageUrl) && file_exists($_basePath)) {
-                $image  = new Varien_Image($_basePath);
-
-                // Only resize if requested size is smaller then original
-                if($_imageWidth < $image->getOriginalWidth()) {
-                    $image->resize($_imageWidth);
-
-                    if($_canOptimize = $this->_canOptimize()) {
-                        $image->quality(100);
-                    }
-
-                    $image->save($_newPath);
-
-                    // Optimize
-                    if($_canOptimize) {
-                        $this->_optimize($_newPath);
-                    }
-
-                    $_imageUrl = $_newUrl;
-                }
-                else {
-                    $_imageUrl = $_origUrl;
-                }
-            }
-
-            // Fall back to 404
-            if(!isset($_imageUrl)) {
-                return $this->norouteAction();
-            }
-
-            // Redirect or serve URL as JSON
-            if($_req->isXmlHttpRequest()) {
-                $_res->setHeader('Content-type', 'application/json')
-                    ->setBody(Zend_Json::encode(array('url' => $_imageUrl)));
-            }
-            else {
-                $_res->setRedirect($_imageUrl);
-            }
+        if (!$this->isRequestIsValid($this->getRequest())) {
+            // Erroneous request performed - move along, nothing to see here
+            return $this->norouteAction();
         }
 
-        // Fall back to 404
-        if(!isset($_imageUrl)) {
-            $this->norouteAction();
+        $requestPath = preg_grep(self::REQUEST_PATH_PATTERN, $this->getRequest()->getPathInfo());
+
+        try {
+            // The actual optimization work takes place right here!
+            $imageUri = $this->image->optimize($requestPath, $this->getImageWidth());
+
+            if ($this->getRequest()->isXmlHttpRequest()) {
+
+                // If this was an Ajax request the serve json response
+                // The response we are giving back is the path to the
+                // optimized image
+                return $this->getResponse()
+                    ->setHeader('Content-type', 'application/json')
+                    ->setBody(json_encode(array('url' => $imageUri)));
+            }
+
+            // Otherwise, give it a good old redirect
+            $this->getResponse()->setRedirect($imageUri);
+
+        } catch (Exception $e) {
+
+            // Something went wrong, serve standard 404
+            return $this->norouteAction();
         }
     }
 
-    private function _getImageWidth($step = 50)
+    /**
+     * @param $_req
+     * @return int
+     */
+    private function isRequestIsValid($_req)
     {
-        return (int)ceil($this->getRequest()->getParam('w')/$step) * $step;
+        return preg_match(self::REQUEST_PATH_PATTERN, $_req->getPathInfo());
     }
 
-    private function _canOptimize()
-    {
-        $output = shell_exec('which imgmin');
-        return (empty($output) ? false : true);
-    }
-
-    private function _optimize($path)
-    {
-        exec("imgmin $path $path");
-    }
 }

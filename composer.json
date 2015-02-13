@@ -3,7 +3,8 @@
     "description": "Provides a simple endpoint for scaling local images in a responsive manner.",
     "require": {
         "magento-hackathon/magento-composer-installer": "*",
-        "magento/core": "1.9.0.1"
+        "magento/core": "1.9.0.1",
+        "mockery/mockery": "0.9.*"
     },
     "require-dev": {
         "codeception/codeception": "2.0.10.1"
@@ -24,5 +25,16 @@
         "magento-root-dir": "src/",
         "magento-deploystrategy": "symlink",
         "auto-append-gitignore": true
+    },
+    "autoload": {
+        "psr-0": {
+            "": [
+                "src/app",
+                "src/app/code/local",
+                "src/app/code/community",
+                "src/app/code/core",
+                "src/lib"
+            ]
+        }
     }
 }
