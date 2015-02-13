@@ -1,4 +1,5 @@
 # Magento Image Module
+[![Build Status](https://magnum.travis-ci.com/karlssonlord/KL_Image.svg?token=yHMF4HM72xKhkhRWAR3d)](https://magnum.travis-ci.com/karlssonlord/KL_Image)
 
 Provides a simple endpoint for scaling local images in a responsive manner.
 
