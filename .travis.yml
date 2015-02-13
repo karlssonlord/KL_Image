@@ -1,0 +1,21 @@
+language: php
+php:
+  - 5.4
+
+env:
+  - DB=mysql
+
+branches:
+    only:
+        - master
+
+before_install:
+    - mysql -uroot -h localhost -e "USE mysql; UPDATE user SET password=PASSWORD('topsecret') WHERE user='root'; FLUSH PRIVILEGES;"
+
+install:
+    - composer install --prefer-source --no-interaction
+    - sleep 1
+    - ./install.sh
+
+script:
+    - vendor/bin/codecept run functional
